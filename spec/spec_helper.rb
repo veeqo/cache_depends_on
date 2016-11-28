@@ -8,6 +8,7 @@ DatabaseCleaner.strategy = :truncation
 RSpec.configure do |config|
   config.before(:suite) do
     ActiveRecord::Base.establish_connection(:adapter => 'sqlite3', :database => ':memory:')
+    ActiveRecord::Migration.verbose = false
     require_relative './support/database_schema'
   end
 
