@@ -45,50 +45,9 @@ describe CacheDependsOn, '#cache_depends_on' do
     cache_depends_on :provider, :personal_datum, :accountants, :auditors, :payers
   end
 
-  before do
-    ActiveRecord::Base.connection.create_table(:accounts) do |t|
-      t.belongs_to :provider
-      t.timestamps null: false
-    end
-
-    ActiveRecord::Base.connection.create_table(:providers) do |t|
-      t.belongs_to :payment_gate
-      t.timestamps null: false
-    end
-
-    ActiveRecord::Base.connection.create_table(:personal_data) do |t|
-      t.belongs_to :account
-      t.timestamps null: false
-    end
-
-    ActiveRecord::Base.connection.create_table(:accountants) do |t|
-      t.belongs_to :account
-      t.timestamps null: false
-    end
-
-    ActiveRecord::Base.connection.create_table(:payment_gates) do |t|
-      t.timestamps null: false
-    end
-
-    ActiveRecord::Base.connection.create_table(:auditors) do |t|
-      t.references :auditable, polymorphic: true
-      t.timestamps null: false
-    end
-
-    ActiveRecord::Base.connection.create_table(:transactions) do |t|
-      t.belongs_to :payer
-      t.belongs_to :account
-      t.timestamps null: false
-    end
-
-    ActiveRecord::Base.connection.create_table(:payers) do |t|
-      t.timestamps null: false
-    end
-  end
-
   after do
-    [:accounts, :providers, :personal_data, :accountants, :payment_gates, :auditors, :payments, :payers].each do |table|
-      ActiveRecord::Base.connection.drop_table table, if_exists: true
+    [:accounts, :providers, :personal_data, :accountants, :payment_gates, :auditors, :transactions, :payers].each do |table|
+      ActiveRecord::Base.connection.execute "DELETE FROM #{table}"
     end
   end
 
