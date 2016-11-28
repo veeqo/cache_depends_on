@@ -45,12 +45,6 @@ describe CacheDependsOn, '#cache_depends_on' do
     cache_depends_on :provider, :personal_datum, :accountants, :auditors, :payers
   end
 
-  after do
-    [:accounts, :providers, :personal_data, :accountants, :payment_gates, :auditors, :transactions, :payers].each do |table|
-      ActiveRecord::Base.connection.execute "DELETE FROM #{table}"
-    end
-  end
-
   shared_examples 'cascade cache invalidation' do
     context 'when the association is one-to-one' do
       context 'when the association is :belongs_to' do
