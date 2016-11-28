@@ -8,3 +8,4 @@
 /spec/reports/
 /tmp/
 /eproject.cfg
+*.gemfile.lock
