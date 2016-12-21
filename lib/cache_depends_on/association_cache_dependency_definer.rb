@@ -6,12 +6,12 @@ module CacheDependsOn
     attr_reader :model_klass
 
     def define_cache_dependency_on(association_names)
-      model_klass.class_eval { include ActiveRecordModelExtension }
-
       find_associations_by_names(association_names).each do |association|
         association.klass.class_eval { include ActiveRecordModelExtension }
         association.klass.invalidates_cache_of << find_inverse_of(association)
       end
+
+      model_klass.class_eval { include ActiveRecordModelExtension }
     end
 
     private
