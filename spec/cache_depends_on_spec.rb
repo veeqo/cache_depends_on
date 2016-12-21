@@ -16,6 +16,7 @@ describe CacheDependsOn, '#cache_depends_on' do
   class Provider < ActiveRecord::Base
     has_one :account
     belongs_to :payment_gate
+    has_many :auditors, as: :auditable
 
     cache_depends_on :payment_gate
   end
@@ -215,7 +216,7 @@ describe CacheDependsOn, '#cache_depends_on' do
     end
   end
 
-  context 'when model is destroy' do
+  context 'when model is destroyed' do
     def destroy_subject
       subject.destroy
     end
@@ -245,25 +246,97 @@ describe CacheDependsOn, '#cache_depends_on' do
     end
   end
 
-  context 'when association is not found' do
-    it 'raises a correspondent error' do
-      expect do
-        Account.class_eval do
-          cache_depends_on :abrakadabra
+  describe 'absence of redundant invalidations' do
+    let(:account) { Account.create! }
+
+    subject { account }
+
+    shared_examples 'absence of redundant invalidations' do
+      specify 'model is touched only once' do
+        expect(subject).to receive(:touch).once.and_call_original
+
+        ActiveRecord::Base.transaction { update_multiple_dependants }
+      end
+
+      specify 'hook is called only once' do
+        subject.singleton_class.class_eval do
+          def after_cache_invalidation_hook; end
+
+          after_cache_invalidation :after_cache_invalidation_hook
         end
-      end.to raise_error(CacheDependsOn::AssociationNotFound, 'association abrakadabra was not found in Account')
+
+        expect(subject).to receive(:after_cache_invalidation_hook)
+
+        ActiveRecord::Base.transaction { update_multiple_dependants }
+      end
+    end
+
+    context 'when association is one-to-many' do
+      let!(:accountants) { 3.times.map { Accountant.create! account: account } }
+
+      def update_multiple_dependants
+        accountants.each(&:touch)
+      end
+
+      include_examples 'absence of redundant invalidations'
+    end
+
+    context 'when association is polymorphic one-to-many' do
+      let!(:auditors) { 3.times.map { Auditor.create! auditable: account } }
+
+      def update_multiple_dependants
+        auditors.each(&:touch)
+      end
+
+      include_examples 'absence of redundant invalidations'
+    end
+
+    context 'when association is one-to-many-through' do
+      let(:provider) { account.create_provider! }
+      let!(:auditors) { 3.times.map { Auditor.create! auditable: provider } }
+
+      def update_multiple_dependants
+        auditors.each(&:touch)
+      end
+
+      include_examples 'absence of redundant invalidations'
+    end
+
+    context 'when cache depends on changed objects more than once' do
+      let(:provider) { account.create_provider! }
+      let!(:provider_auditors) { 3.times.map { Auditor.create! auditable: provider } }
+      let!(:account_auditors) { 3.times.map { Auditor.create! auditable: account } }
+
+      def update_multiple_dependants
+        provider_auditors.each(&:touch)
+        account_auditors.each(&:touch)
+      end
+
+      include_examples 'absence of redundant invalidations'
     end
   end
 
-  context 'when reverse association is not found' do
-    it 'raises a correspondent error' do
-      expect do
-        Account.class_eval do
-          has_many :payment_gates
+  describe 'dependence configuration' do
+    context 'when association is not found' do
+      it 'raises a correspondent error' do
+        expect do
+          Account.class_eval do
+            cache_depends_on :abrakadabra
+          end
+        end.to raise_error(CacheDependsOn::AssociationNotFound, 'association abrakadabra was not found in Account')
+      end
+    end
 
-          cache_depends_on :payment_gates
-        end
-      end.to raise_error(CacheDependsOn::ReverseAssociationNotFound, 'reverse association of Account was not found in PaymentGate')
+    context 'when reverse association is not found' do
+      it 'raises a correspondent error' do
+        expect do
+          Account.class_eval do
+            has_many :payment_gates
+
+            cache_depends_on :payment_gates
+          end
+        end.to raise_error(CacheDependsOn::ReverseAssociationNotFound, 'reverse association of Account was not found in PaymentGate')
+      end
     end
   end
 
@@ -272,8 +345,8 @@ describe CacheDependsOn, '#cache_depends_on' do
     let!(:provider) { Provider.create! account: account }
 
     before do
-      [Account, Provider].each do |klass|
-        klass.class_eval do
+      [account, provider].each do |object|
+        object.singleton_class.class_eval do
           def after_cache_invalidation_hook; end
           def another_after_cache_invalidation_hook; end
 
