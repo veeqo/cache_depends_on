@@ -366,4 +366,73 @@ describe CacheDependsOn, '#cache_depends_on' do
       provider.touch
     end
   end
+
+  describe 'associations with inverse_of option' do
+    class CompanyAddress < ActiveRecord::Base
+      belongs_to :company, inverse_of: :address
+      has_many :company_employees, through: :company, source: :employees
+    end
+
+    class Company < ActiveRecord::Base
+      has_many :employees, class_name: 'User'
+      has_one :address, class_name: 'CompanyAddress', inverse_of: :company
+    end
+
+    class UserProfile < ActiveRecord::Base
+      belongs_to :user, inverse_of: :profile
+    end
+
+    class UserRole < ActiveRecord::Base
+      belongs_to :user, inverse_of: :roles
+    end
+
+    class User < ActiveRecord::Base
+      belongs_to :company, inverse_of: :employees
+      has_many :roles, class_name: 'UserRole'
+      has_one :profile, class_name: 'UserProfile'
+      has_one :company_address, through: :company, source: :address, inverse_of: :company_employees
+
+      cache_depends_on :roles, :profile, :company, :company_address
+    end
+
+    let!(:company)         { Company.create! }
+    let!(:company_address) { CompanyAddress.create! company: company }
+    let!(:user)            { User.create! company: company }
+    let!(:user_profile)    { UserProfile.create! user: user }
+    let!(:user_role)       { UserRole.create! user: user }
+
+    before { user.update_column(:updated_at, 1.day.ago) }
+
+    shared_examples 'dependent entity updating' do
+      let(:dependent_entity) { user }
+
+      it 'updates dependent entity' do
+        expect { entity.reload.update_attribute(:updated_at, Time.now) }.to change { dependent_entity.reload.updated_at }
+      end
+    end
+
+    context 'when relation is has_many with inverse_of' do
+      let(:entity) { user_role }
+
+      it_behaves_like 'dependent entity updating'
+    end
+
+    context 'when relation is has_one with inverse_of' do
+      let(:entity) { user_profile }
+
+      it_behaves_like 'dependent entity updating'
+    end
+
+    context 'when relation is belongs_to with inverse_of' do
+      let(:entity) { company }
+
+      it_behaves_like 'dependent entity updating'
+    end
+
+    context 'when relation is has_one through another association with inverse_of' do
+      let(:entity) { company_address }
+
+      it_behaves_like 'dependent entity updating'
+    end
+  end
 end

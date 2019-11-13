@@ -32,12 +32,12 @@ module CacheDependsOn
     end
 
     def find_singular_inverse_of(association)
-      suggested_singular_reverse_association_name = model_klass.model_name.singular.to_sym
+      suggested_singular_reverse_association_name = association.options.fetch(:inverse_of, model_klass.model_name.singular.to_sym)
       association.klass.reflect_on_association suggested_singular_reverse_association_name
     end
 
     def find_plural_inverse_of(association)
-      suggested_plural_reverse_association_name = model_klass.model_name.plural.to_sym
+      suggested_plural_reverse_association_name = association.options.fetch(:inverse_of, model_klass.model_name.plural.to_sym)
       association.klass.reflect_on_association suggested_plural_reverse_association_name
     end
 

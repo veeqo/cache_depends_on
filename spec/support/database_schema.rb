@@ -37,4 +37,28 @@ ActiveRecord::Schema.define version: 0 do
   create_table(:payers) do |t|
     t.timestamps null: false
   end
+
+  create_table(:companies) do |t|
+    t.timestamps null: false
+  end
+
+  create_table(:company_addresses) do |t|
+    t.belongs_to :company
+    t.timestamps null: false
+  end
+
+  create_table(:users) do |t|
+    t.belongs_to :company
+    t.timestamps null: false
+  end
+
+  create_table(:user_profiles) do |t|
+    t.belongs_to :user
+    t.timestamps null: false
+  end
+
+  create_table(:user_roles) do |t|
+    t.belongs_to :user
+    t.timestamps null: false
+  end
 end
