@@ -9,3 +9,5 @@
 /tmp/
 /eproject.cfg
 *.gemfile.lock
+/.ruby-version
+/.ruby-gemset
