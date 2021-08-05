@@ -1,4 +1,5 @@
 /.bundle/
+/gemfiles/.bundle/
 /.yardoc
 /Gemfile.lock
 /_yardoc/
@@ -9,3 +10,5 @@
 /tmp/
 /eproject.cfg
 *.gemfile.lock
+/.ruby-version
+/.ruby-gemset

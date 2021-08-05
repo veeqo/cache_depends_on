@@ -1,0 +1,35 @@
+name: Main
+
+on: [push,pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    container: ruby:${{ matrix.ruby }}
+
+    strategy:
+      matrix:
+        ruby:
+          - 2.6
+          - 2.7
+        gemfile:
+          - gemfiles/activerecord_4.2.gemfile
+          - gemfiles/activerecord_5.0.gemfile
+        exclude:
+          - ruby: 2.7
+            gemfile: gemfiles/activerecord_4.2.gemfile
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install dependencies
+      env:
+        BUNDLE_GEMFILE: ${{ matrix.gemfile }}
+      run: |
+        bundle install --jobs 4 --retry 3
+    - name: Run the default task
+      env:
+        BUNDLE_GEMFILE: ${{ matrix.gemfile }}
+      run: rake
